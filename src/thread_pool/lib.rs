@@ -48,13 +48,20 @@ impl Worker {
     let thread = thread::spawn(move || {
         loop {
           working = false;
-          let url = receiver.lock().unwrap().recv().unwrap();
-          working = true;
 
-          match save_image(&url) {
-            Ok(_) => println!("{} OK!", url),
-            err   => println!("{:#?}", err),
+          let lock = match receiver.lock() {
+            Ok(r) => r,
+            _ => continue,
           };
+
+          if let Ok(r) = lock.recv() {
+            match save_image(&r) {
+              Ok(_) => println!("thread: {} - {} OK!", id, &r),
+              err   => println!("{:#?}", err),
+            };
+          }
+
+          // working = true;
         }
       });
 
@@ -65,11 +72,6 @@ impl Worker {
     }
   }
 }
-
-// #[derive(From)]
-// enum Eee {
-//   Err1(reqwest::Error),
-// }
 
 fn save_image(src: &String) -> Result<(), Box<Error>> {
     if src.is_empty() {

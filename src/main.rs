@@ -10,12 +10,11 @@ use std::sync::Arc;
 use thread_pool::ThreadPool;
 use std::time::Duration;
 
-
 fn main() {
-    let host = "http://dd.dety.men";
+    let host = "";
     let url = Arc::new(format!("{}/thread0806.php?fid=8", host));
     let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
-    let pool = Arc::new(ThreadPool::new(1));
+    let pool = Arc::new(ThreadPool::new(20));
    
     for i in 1..10 {
         let pool = Arc::clone(&pool);
@@ -24,7 +23,7 @@ fn main() {
             let foo = format!("{}&page={}", url, i);
             let text = reqwest::get(&foo).unwrap().text().unwrap();
 
-            println!("analysing page {} ......", i);
+            println!("analysing page {}...", i);
 
             for node in Document::from(&text[..]).find(Name("a")) {
                 let pool = Arc::clone(&pool);
@@ -38,19 +37,17 @@ fn main() {
         handles.push(handle);
     }
 
-    // for h in handles {
-    //     h.join().unwrap();
-    // }
-
-    loop {
-        for w in &pool.workers {
-            // if w.working {
-            //     break;
-            // }
-        }
-        // println!("{}", &pool.workers.len());
-        thread::sleep(Duration::from_secs(1));
+    for h in handles {
+        h.join().unwrap();
     }
+
+    // loop {
+    //     for w in &pool.workers {
+    //         // println!("{:?}", w.thread.thread());
+    //     }
+    //     // println!("{}", &pool.workers.len());
+    //     thread::sleep(Duration::from_secs(1));
+    // }
 }
 
 fn iter_url(url: &str, pool: Arc<ThreadPool>) {
@@ -65,7 +62,6 @@ fn iter_url(url: &str, pool: Arc<ThreadPool>) {
             _ => continue,
         };
         
-        // save_image(src, name);
         pool.execute(src.to_string());
     }
 }
