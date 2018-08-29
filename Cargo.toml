@@ -6,3 +6,7 @@ authors = ["zhenhuanlee <zhenhuanlee@outlook.com>"]
 [dependencies]
 reqwest = "0.8.8"
 select = "0.4.2"
+
+[lib]
+name = "thread_pool"
+path = "src/thread_pool/lib.rs"
