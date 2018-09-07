@@ -17,8 +17,7 @@ fn main() {
     let mut config = String::new();
     file.read_to_string(&mut config).unwrap();
     let arr = config.split(";").collect::<Vec<&str>>();
-    let host = Arc::new(arr[0].to_string());
-    // let host = "http://dd.flexui.win";
+    let host = Arc::new(arr[0].to_owned());
     let size = arr[1].parse::<usize>().unwrap();
     let page = arr[2].parse::<u8>().unwrap();
     let url = Arc::new(format!("{}/thread0806.php?fid=8", host));
