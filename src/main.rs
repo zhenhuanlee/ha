@@ -9,16 +9,27 @@ use std::thread;
 use std::sync::Arc;
 use thread_pool::ThreadPool;
 use std::time::Duration;
+use std::fs::File;
+use std::io::prelude::*;
 
 fn main() {
-    let host = "";
+    let mut file = File::open("config.txt").unwrap();
+    let mut config = String::new();
+    file.read_to_string(&mut config).unwrap();
+    let arr = config.split(";").collect::<Vec<&str>>();
+    let host = Arc::new(arr[0].to_string());
+    // let host = "http://dd.flexui.win";
+    let size = arr[1].parse::<usize>().unwrap();
+    let page = arr[2].parse::<u8>().unwrap();
     let url = Arc::new(format!("{}/thread0806.php?fid=8", host));
     let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
-    let pool = Arc::new(ThreadPool::new(20));
-   
-    for i in 1..10 {
+    let pool = Arc::new(ThreadPool::new(size));
+
+    for i in 1..=page {
         let pool = Arc::clone(&pool);
         let url = Arc::clone(&url);
+        let host = Arc::clone(&host);
+
         let handle = thread::spawn(move || {
             let foo = format!("{}&page={}", url, i);
             let text = reqwest::get(&foo).unwrap().text().unwrap();
@@ -37,17 +48,12 @@ fn main() {
         handles.push(handle);
     }
 
-    for h in handles {
-        h.join().unwrap();
+    loop {
+        // if too == 0 {
+        //     println!("Done!");
+        // }
+        thread::sleep(Duration::from_millis(500));
     }
-
-    // loop {
-    //     for w in &pool.workers {
-    //         // println!("{:?}", w.thread.thread());
-    //     }
-    //     // println!("{}", &pool.workers.len());
-    //     thread::sleep(Duration::from_secs(1));
-    // }
 }
 
 fn iter_url(url: &str, pool: Arc<ThreadPool>) {

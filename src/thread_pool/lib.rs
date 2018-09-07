@@ -2,8 +2,7 @@ extern crate reqwest;
 extern crate select;
 
 use std::thread;
-use std::sync::mpsc;
-use std::sync::{Mutex, Arc};
+use std::sync::{Mutex, Arc, PoisonError, mpsc};
 use std::fs::File;
 use std::io::prelude::*;
 use std::error::Error;
@@ -16,7 +15,7 @@ pub struct ThreadPool {
 pub struct Worker {
   pub id: usize,
   pub thread: std::thread::JoinHandle<String>,
-  pub working: bool,
+  pub working: Box<bool>,
 }
 
 impl ThreadPool {
@@ -43,39 +42,46 @@ impl ThreadPool {
 
 impl Worker {
   fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<String>>>) -> Worker {
-    let mut working = false;
+    let mut is_working = Box::new(false);
 
     let thread = thread::spawn(move || {
         loop {
-          working = false;
-
-          let lock = match receiver.lock() {
-            Ok(r) => r,
-            _ => continue,
+          let src = match receiver.lock() {
+            Ok(r) => {
+              match r.recv() {
+                Ok(r) => r,
+                Err(e) => {
+                  println!("catch error {} at recv", e);
+                  continue;
+                }
+              }
+            },
+            Err(e) => {
+              println!("catch error {} at lock", e);
+              continue;
+            },
+          
           };
 
-          if let Ok(r) = lock.recv() {
-            match save_image(&r) {
-              Ok(_) => println!("thread: {} - {} OK!", id, &r),
-              err   => println!("{:#?}", err),
-            };
-          }
-
-          // working = true;
+          match save_image(&src) {
+            Ok(_)  => println!("thread: {} - {} OK!", id, src),
+            Err(e) => println!("catch error {:#?} at save_image", e),
+          };
         }
       });
 
     Worker{
       id: id,
       thread: thread,
-      working: working,
+      working: is_working,
     }
   }
+
 }
 
 fn save_image(src: &String) -> Result<(), Box<Error>> {
     if src.is_empty() {
-      return Ok(());
+      return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "invalid src")));
     }
     let mut buff: Vec<u8> = Vec::new();
     let mut res = reqwest::get(src)?;
