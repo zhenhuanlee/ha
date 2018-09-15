@@ -38,7 +38,7 @@ fn main() {
             for node in Document::from(&text[..]).find(Name("a")) {
                 let pool = Arc::clone(&pool);
                 let too = match node.attr("href") {
-                    Some(x) if x.contains("htm_data") => x,
+                    Some(x) if x.contains("htm_data") && !node.text().contains("歐美") => x,
                     _ => continue,
                 };
                 iter_url(&format!("{}/{}", host, too), pool);
